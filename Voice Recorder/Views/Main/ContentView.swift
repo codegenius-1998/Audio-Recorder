@@ -10,11 +10,9 @@ import SwiftUI
 
 struct ContentView: View {
     
-    @ObservedObject var audioRecorder: AudioRecorder
+    @EnvironmentObject var audioRecorderService: AudioRecorderService
     @State private var showMeaning = false
     @State private var isPlaying = false
-    @State private var recordingTimer: Timer?
-    @State private var recordingTime: TimeInterval = 0
     
     var body: some View {
         ZStack {
@@ -25,19 +23,7 @@ struct ContentView: View {
                 HStack(alignment: .top) {
                     // プログレスバー
                     GeometryReader { geometry in
-                        VStack(spacing: 2) {
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.gray.opacity(0.2))
-                                    .frame(height: 12)
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.gray.opacity(0.5))
-                                    .frame(width: geometry.size.width * 0.2, height: 12)
-                            }
-                            Text("9:32")
-                                .font(.system(size: 12))
-                                .frame(maxWidth: .infinity, alignment: .trailing)
-                        }
+                        ProgressBar(progress: 0.2, timeText: "9:32")
                     }.padding(.trailing, 16)
                     
                     Button("Exit") {
@@ -131,22 +117,17 @@ struct ContentView: View {
                                 .multilineTextAlignment(.trailing)
                                 .padding(.horizontal, 20)
                             
-                            Text(formatTime(recordingTime))
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(recordingTimer != nil ? .black : .clear)
-                                .padding(.vertical, 20)
+                            RecordingTimer(isRecording: audioRecorderService.isRecording)
                             
                             // 録音ボタン
                             Button(action: {
-                                if audioRecorder.recording {
-                                    audioRecorder.stopRecording()
-                                    stopRecordingTimer()
+                                if audioRecorderService.isRecording {
+                                    audioRecorderService.stopRecording()
                                 } else {
-                                    audioRecorder.startRecording()
-                                    startRecordingTimer()
+                                    audioRecorderService.startRecording()
                                 }
                             }) {
-                                Image(systemName: audioRecorder.recording ? "stop.fill" : "mic.fill")
+                                Image(systemName: audioRecorderService.isRecording ? "stop.fill" : "mic.fill")
                                     .font(.system(size: 24))
                                     .foregroundColor(.white)
                                     .frame(width: 80, height: 80)
@@ -169,43 +150,11 @@ struct ContentView: View {
             }
         }
     }
-    
-    // 録音タイマーを開始
-    private func startRecordingTimer() {
-        recordingTime = 0
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            recordingTime += 1
-        }
-    }
-    
-    // 録音タイマーを停止
-    private func stopRecordingTimer() {
-        recordingTimer?.invalidate()
-        recordingTimer = nil
-    }
-    
-    // 時間をフォーマット（MM:SS形式）
-    private func formatTime(_ timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
-        let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-}
-
-// 三角形のシェイプ
-struct Triangle: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.closeSubpath()
-        return path
-    }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView(audioRecorder: AudioRecorder())
+        ContentView()
+            .environmentObject(AudioRecorderService())
     }
-}
+} 
